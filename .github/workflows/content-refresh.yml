@@ -1,0 +1,68 @@
+name: One-time profile and certificate update
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/content-refresh.yml
+permissions:
+  contents: write
+jobs:
+  update-portfolio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add profile skills and certificates
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          page = Path('index.html')
+          html = page.read_text()
+
+          old_intro = '<p class="intro">Five-plus years of keeping employee records, stock ledgers and production data accurate — across HRIS and ERP systems, Excel reporting, onboarding and export documentation.</p>'
+          new_intro = '<p class="intro">Five-plus years of keeping employee records, stock ledgers and production data accurate — across HRIS and ERP systems, Excel reporting, onboarding and export documentation. My approach: understand the goal, organize information carefully, report clearly and keep improving the process.</p>'
+          assert html.count(old_intro) == 1, 'Intro text not found'
+          html = html.replace(old_intro, new_intro, 1)
+
+          old_skills = '<div><h3>Data &amp; administration</h3><ul><li>Excel and MIS reporting</li><li>Data entry and verification</li><li>Production records</li><li>Office administration</li></ul></div>'
+          new_skills = '<div><h3>Data &amp; administration</h3><ul><li>Excel and MIS reporting</li><li>VLOOKUP/XLOOKUP (working knowledge); PivotTables (basic)</li><li>Data entry and verification</li><li>Production records and office administration</li><li>Oracle ERP and Google Workspace</li><li>Canva, SEO and WordPress</li><li>AI tools and prompt engineering</li><li>Power BI and SQL (planned learning)</li></ul></div>'
+          assert html.count(old_skills) == 1, 'Skills section not found'
+          html = html.replace(old_skills, new_skills, 1)
+
+          verify_url = 'https://www.freelancers.gov.bd/verify/a1c55d0c-8ea9-42d1-b819-821d74dab442-sh-1768654010-y-71ec91545d5f23dc2711da0539b750e76e30eab4-a-m-075db42fdd41b6d2b6b2b7f4c71e271a6e29244b'
+          old_gov = '<li>Government-verified freelancer, ICT Division, Bangladesh.</li>'
+          new_gov = f'<li>Bangladesh Government Certified Freelancer — Digital Marketing; Department of ICT, Government of Bangladesh. Issued Jan 2026, valid until Jan 2029. <a href="{verify_url}" target="_blank" rel="noopener">Verify credential</a>.</li>'
+          assert html.count(old_gov) == 1, 'Freelancer credential text not found'
+          html = html.replace(old_gov, new_gov, 1)
+
+          certificates = [
+              ('Data Forecasting with Claude', 'LinkedIn', 'Oct 2026'),
+              ('Play It Safe: Manage Security Risks', 'Google', 'May 2026'),
+              ('Excel: VLOOKUP and XLOOKUP for Beginners', 'LinkedIn', 'Sep 2025'),
+              ('Excel PivotTable Quick Tips', 'LinkedIn', 'Sep 2025'),
+              ('Data Science &amp; Analytics', 'HP LIFE', 'Feb 2025'),
+              ('AI for Beginners', 'HP LIFE', 'Feb 2025'),
+              ('Effective Leadership', 'HP LIFE', 'Feb 2025'),
+              ('Business Email', 'HP LIFE', 'Feb 2025'),
+              ('Customer Experience For Business Success', 'HP LIFE', 'May 2025'),
+              ('Introduction to Cyber Security Awareness', 'HP LIFE', 'Jul 2025'),
+              ('Six Sigma Level 1', 'PRAN-RFL Group', 'Aug 2023'),
+              ('Digital Literacy Course For Youth', 'Information and Communication Technology Division Bangladesh', 'Sep 2022'),
+          ]
+          rows = ''.join(f'<li><div><b>{name}</b><small>{issuer}</small></div><span class="year">{date}</span></li>' for name, issuer, date in certificates)
+          anchor = '<li><div><b>Business Development: Strategic Planning</b><small>LinkedIn Learning</small></div></li></ul>'
+          replacement = '<li><div><b>Business Development: Strategic Planning</b><small>LinkedIn Learning</small></div></li>' + rows + '</ul><p class="cert-note">Selected additions from <a href="https://ammar.bond/" target="_blank" rel="noopener">Ammar.bond</a>. <a href="https://ammar.bond/" target="_blank" rel="noopener">View the full list of 60 learning credentials</a>.</p>'
+          assert html.count(anchor) == 1, 'Certification list not found'
+          html = html.replace(anchor, replacement, 1)
+          assert 'Power BI and SQL (planned learning)' in html
+          assert html.count('Data Forecasting with Claude') == 1
+          page.write_text(html)
+          Path('.github/workflows/content-refresh.yml').unlink()
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git add -u -- .github/workflows/content-refresh.yml
+          git commit -m "Add profile skills and certificates"
+          git push origin HEAD:main
